@@ -1,4 +1,4 @@
-package filemonitor;
+package threads;
 
 import types.ReadFile;
 

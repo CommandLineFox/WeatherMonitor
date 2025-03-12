@@ -1,5 +1,7 @@
 package threads;
 
+import jobs.ReadFileJob;
+import types.Job;
 import types.ReadFile;
 
 import java.io.File;
@@ -7,19 +9,16 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
 
 public class DirectoryMonitor implements Runnable {
     private final Path directory;
-    private final BlockingQueue<ReadFile> queue;
-    private final Map<String, ReadFile> lastModifiedMap; // Promenjena mapa za praćenje ReadFile objekata
-    private final ExecutorService executor;
+    private final BlockingQueue<Job> jobQueue;
+    private final Map<String, Long> lastModifiedMap; // Praćenje poslednje izmene fajlova
 
-    public DirectoryMonitor(String dirPath, BlockingQueue<ReadFile> queue) {
+    public DirectoryMonitor(String dirPath, BlockingQueue<Job> jobQueue) {
         this.directory = Paths.get(dirPath);
-        this.queue = queue;
-        this.executor = Executors.newFixedThreadPool(2);
-
+        this.jobQueue = jobQueue;
         this.lastModifiedMap = new HashMap<>();
     }
 
@@ -31,7 +30,7 @@ public class DirectoryMonitor implements Runnable {
             while (!Thread.currentThread().isInterrupted()) {
                 WatchKey key;
                 try {
-                    key = watchService.take();
+                    key = watchService.take(); // Blokira dok ne dođe event
                 } catch (InterruptedException e) {
                     System.out.println("Watcher thread interrupted. Shutting down...");
                     Thread.currentThread().interrupt();
@@ -42,23 +41,17 @@ public class DirectoryMonitor implements Runnable {
                     Path filePath = directory.resolve((Path) event.context());
                     File file = filePath.toFile();
 
+                    // Proveravamo samo .txt i .csv fajlove
                     if ((filePath.toString().endsWith(".txt") || filePath.toString().endsWith(".csv")) && file.exists()) {
                         String fileName = filePath.getFileName().toString();
                         long newLastModified = file.lastModified();
 
                         synchronized (lastModifiedMap) {
-                            ReadFile existingFile = lastModifiedMap.get(fileName);
-                            if (existingFile != null) {
-                                if (existingFile.getLastModified() < newLastModified) {
-                                    existingFile.setLastModified(newLastModified);
-                                    queue.put(existingFile);
-                                    System.out.println("Updated file in processing queue: " + fileName);
-                                }
-                            } else {
-                                ReadFile newFile = new ReadFile(fileName, filePath.toString(), newLastModified);
-                                lastModifiedMap.put(fileName, newFile);
-                                queue.put(newFile);
-                                System.out.println("Sent file to processing queue: " + fileName);
+                            Long lastModified = lastModifiedMap.get(filePath.toString());
+                            if (lastModified == null || lastModified < newLastModified) {
+                                lastModifiedMap.put(filePath.toString(), newLastModified);
+                                jobQueue.put(new ReadFileJob("Read", new ReadFile(fileName, filePath.toString(), newLastModified));
+                                System.out.println("Queued ReadFileJob for: " + fileName);
                             }
                         }
                     }
@@ -67,8 +60,6 @@ public class DirectoryMonitor implements Runnable {
             }
         } catch (IOException | InterruptedException e) {
             System.err.println("Watcher error: " + e.getMessage());
-        } finally {
-            executor.shutdown();
         }
     }
 }

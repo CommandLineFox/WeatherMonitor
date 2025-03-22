@@ -14,6 +14,6 @@ public class StopJob extends Job {
 
     @Override
     public void execute() {
-
+        System.out.println("Stop job executed");
     }
 }

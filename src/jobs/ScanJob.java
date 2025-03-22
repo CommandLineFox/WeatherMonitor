@@ -4,12 +4,12 @@ import types.Job;
 import types.JobType;
 
 public class ScanJob extends Job {
-    private float minimum;
-    private float maximum;
-    private char startLetter;
-    private String outputFileName;
+    private final double minimum;
+    private final double maximum;
+    private final char startLetter;
+    private final String outputFileName;
 
-    public ScanJob(String name, float minimum, float maximum, char startLetter, String outputFileName) {
+    public ScanJob(String name, double minimum, double maximum, char startLetter, String outputFileName) {
         super(JobType.SCAN, name);
 
         this.minimum = minimum;
@@ -20,6 +20,6 @@ public class ScanJob extends Job {
 
     @Override
     public void execute() {
-
+        System.out.println("Scanning for words between " + minimum + " and " + maximum + " starting with " + startLetter + " and writing to " + outputFileName);
     }
 }

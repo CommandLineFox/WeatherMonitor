@@ -10,6 +10,6 @@ public class ExportMapJob extends Job {
 
     @Override
     public void execute() {
-
+        System.out.println("Export map job " + getName() + " executed.");
     }
 }

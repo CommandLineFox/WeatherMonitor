@@ -10,6 +10,6 @@ public class MapJob extends Job {
 
     @Override
     public void execute() {
-
+        System.out.println("Map job " + getName() + " executed.");
     }
 }

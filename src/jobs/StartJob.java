@@ -1,6 +1,7 @@
 package jobs;
 
 import types.Job;
+import types.JobStatus;
 import types.JobType;
 
 public class StartJob extends Job {
@@ -8,12 +9,13 @@ public class StartJob extends Job {
 
     public StartJob(String name, boolean loadJobs) {
         super(JobType.START, name);
-
         this.loadJobs = loadJobs;
     }
 
     @Override
     public void execute() {
-
+        setjobStatus(JobStatus.RUNNING);
+        setjobStatus(JobStatus.COMPLETED);
+        System.out.println("Start job " + getName() + " completed.");
     }
 }

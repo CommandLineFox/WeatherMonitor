@@ -1,4 +1,4 @@
-package dispatcher;
+package threads;
 
 import types.Job;
 import types.JobType;
@@ -10,8 +10,8 @@ public class JobDispatcher implements Runnable {
     private final ExecutorService fileExecutor;
     private final ExecutorService generalExecutor;
 
-    public JobDispatcher(int fileThreads, int generalThreads) {
-        this.jobQueue = new LinkedBlockingQueue<>();
+    public JobDispatcher(int fileThreads, int generalThreads, BlockingQueue<Job> jobQueue) {
+        this.jobQueue = jobQueue;
         this.fileExecutor = Executors.newFixedThreadPool(fileThreads);
         this.generalExecutor = Executors.newFixedThreadPool(generalThreads);
     }
@@ -28,8 +28,10 @@ public class JobDispatcher implements Runnable {
                 }
 
                 if (job.getType() == JobType.READ_FILE) {
+                    System.out.println("Dodat za citanje");
                     fileExecutor.submit(job::execute);
                 } else {
+                    System.out.println("Dodat za izvrsavanje");
                     generalExecutor.submit(job::execute);
                 }
             }

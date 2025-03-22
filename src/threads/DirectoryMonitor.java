@@ -41,21 +41,24 @@ public class DirectoryMonitor implements Runnable {
                     Path filePath = directory.resolve((Path) event.context());
                     File file = filePath.toFile();
 
-                    // Proveravamo samo .txt i .csv fajlove
-                    if ((filePath.toString().endsWith(".txt") || filePath.toString().endsWith(".csv")) && file.exists()) {
-                        String fileName = filePath.getFileName().toString();
-                        long newLastModified = file.lastModified();
+                    // Ako fajl nije .txt ili .csv ili ne postoji, preskoči iteraciju
+                    if (!(filePath.toString().endsWith(".txt") || filePath.toString().endsWith(".csv")) || !file.exists()) {
+                        continue;
+                    }
 
-                        synchronized (lastModifiedMap) {
-                            Long lastModified = lastModifiedMap.get(filePath.toString());
-                            if (lastModified == null || lastModified < newLastModified) {
-                                lastModifiedMap.put(filePath.toString(), newLastModified);
-                                jobQueue.put(new ReadFileJob("Read", new ReadFile(fileName, filePath.toString(), newLastModified));
-                                System.out.println("Queued ReadFileJob for: " + fileName);
-                            }
+                    String fileName = filePath.getFileName().toString();
+                    long newLastModified = file.lastModified();
+
+                    synchronized (lastModifiedMap) {
+                        Long lastModified = lastModifiedMap.get(filePath.toString());
+                        if (lastModified == null || lastModified < newLastModified) {
+                            lastModifiedMap.put(filePath.toString(), newLastModified);
+                            jobQueue.put(new ReadFileJob("Read", new ReadFile(fileName, filePath.toString(), newLastModified)));
+                            System.out.println("Queued ReadFileJob for: " + fileName);
                         }
                     }
                 }
+
                 key.reset();
             }
         } catch (IOException | InterruptedException e) {

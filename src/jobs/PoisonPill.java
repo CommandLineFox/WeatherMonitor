@@ -10,6 +10,6 @@ public class PoisonPill extends Job {
 
     @Override
     public void execute() {
-
+        System.out.println("Poison pill " + getName() + " executed.");
     }
 }

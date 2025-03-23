@@ -7,10 +7,18 @@ import lombok.Setter;
 @Getter
 public class ParsedData {
     private int appearanceCount;
-    private float valueSum;
+    private double valueSum;
 
     public ParsedData(int appearanceCount, float valueSum) {
         this.appearanceCount = appearanceCount;
         this.valueSum = valueSum;
+    }
+
+    public void incrementStationCount() {
+        appearanceCount++;
+    }
+
+    public void addTemperature(double temperature) {
+        valueSum += temperature;
     }
 }

@@ -1,6 +1,8 @@
 package jobs;
 
+import memory.Memory;
 import types.Job;
+import types.JobStatus;
 import types.JobType;
 
 public class StopJob extends Job {
@@ -14,6 +16,16 @@ public class StopJob extends Job {
 
     @Override
     public void execute() {
-        System.out.println("Stop job executed" + getName());
+        Memory memory = Memory.getInstance();
+        memory.getJobQueue().forEach((job -> {
+            if (job.getJobStatus() == JobStatus.PENDING) {
+                //TODO
+            }
+        }));
+
+        memory.getJobDispatcherThread().interrupt();
+        memory.getDirectoryMonitorThread().interrupt();
+        memory.getCliThread().interrupt();
+        System.out.println("Stopped.");
     }
 }

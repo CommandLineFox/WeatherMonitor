@@ -2,16 +2,14 @@ package threads;
 
 import jobs.*;
 import memory.Memory;
-import types.*;
 
 import java.util.*;
-import java.util.concurrent.BlockingQueue;
 
 public class Cli implements Runnable {
-    private final BlockingQueue<Job> jobQueue;
+    private final Memory memory;
 
-    public Cli(BlockingQueue<Job> jobQueue) {
-        this.jobQueue = jobQueue;
+    public Cli() {
+        this.memory = Memory.getInstance();
     }
 
     @Override
@@ -54,10 +52,10 @@ public class Cli implements Runnable {
                 handleStatusCommand(args);
                 break;
             case "MAP":
-                jobQueue.put(new MapJob("map-job"));
+                memory.getJobQueue().put(new MapJob("map-job"));
                 break;
             case "EXPORTMAP":
-                jobQueue.put(new ExportMapJob("export-map-job"));
+                memory.getJobQueue().put(new ExportMapJob("export-map-job"));
                 break;
             case "SHUTDOWN":
                 handleShutdownCommand(args);
@@ -108,7 +106,7 @@ public class Cli implements Runnable {
         String output = parseStringArg(args, "output", "o");
         String jobName = parseStringArg(args, "job", "j");
 
-        jobQueue.put(new ScanJob(jobName, minTemp, maxTemp, letter.charAt(0), output));
+        memory.getJobQueue().put(new ScanJob(jobName, minTemp, maxTemp, letter.charAt(0), output));
     }
 
     /**
@@ -118,7 +116,6 @@ public class Cli implements Runnable {
      */
     private void handleStatusCommand(Map<String, String> args) {
         String jobName = parseStringArg(args, "job", "j");
-        System.out.println("Status");
     }
 
     /**
@@ -129,7 +126,7 @@ public class Cli implements Runnable {
      */
     private void handleShutdownCommand(Map<String, String> args) throws InterruptedException {
         boolean saveJobs = args.containsKey("save-jobs") || args.containsKey("s");
-        jobQueue.put(new StopJob("stop-job", saveJobs));
+        memory.getJobQueue().put(new StopJob("stop-job", saveJobs));
     }
 
     /**
@@ -145,8 +142,8 @@ public class Cli implements Runnable {
         System.out.print("Unesite putanju do direktorijuma: ");
         String dirPath = scanner.nextLine();
 
-        JobDispatcher jobDispatcher = new JobDispatcher(4, 4, jobQueue);
-        DirectoryMonitor directoryMonitor = new DirectoryMonitor(dirPath, jobQueue);
+        JobDispatcher jobDispatcher = new JobDispatcher(4, 4, memory.getJobQueue());
+        DirectoryMonitor directoryMonitor = new DirectoryMonitor(dirPath, memory.getJobQueue());
 
         Memory memory = Memory.getInstance();
         memory.setJobDispatcherThread(new Thread(jobDispatcher));

@@ -3,6 +3,8 @@ package threads;
 import jobs.*;
 import memory.Memory;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 public class Cli implements Runnable {
@@ -18,7 +20,6 @@ public class Cli implements Runnable {
         System.out.println("CLI pokrenut. Unesite komandu (start, stop, status, map, export_map):");
 
         while (true) {
-            System.out.print("> ");
             String input = scanner.nextLine().trim();
             if (input.isEmpty()) continue;
 
@@ -55,7 +56,7 @@ public class Cli implements Runnable {
                 memory.getJobQueue().put(new MapJob("map-job"));
                 break;
             case "EXPORTMAP":
-                memory.getJobQueue().put(new ExportMapJob("export-map-job"));
+                handleExportMapCommand(args);
                 break;
             case "SHUTDOWN":
                 handleShutdownCommand(args);
@@ -144,19 +145,50 @@ public class Cli implements Runnable {
 
         JobDispatcher jobDispatcher = new JobDispatcher(4, 4, memory.getJobQueue());
         DirectoryMonitor directoryMonitor = new DirectoryMonitor(dirPath, memory.getJobQueue());
+        PeriodicReport periodicReport = new PeriodicReport("log.csv");
 
         Memory memory = Memory.getInstance();
         memory.setJobDispatcherThread(new Thread(jobDispatcher));
         memory.setDirectoryMonitorThread(new Thread(directoryMonitor));
+        memory.setPeriodicMonitorThread(new Thread(periodicReport));
 
         memory.getJobDispatcherThread().start();
         System.out.println("Started job dispatcher");
         memory.getDirectoryMonitorThread().start();
         System.out.println("Started directory monitor on path: " + dirPath);
+        memory.getPeriodicMonitorThread().start();
+        System.out.println("Started periodic monitor on path: " + "log.csv");
 
         if (loadJobs) {
             System.out.println("Have to load old jobs");
         }
+    }
+
+    /**
+     * Metod za pokretanje export komande
+     *
+     * @param args Argumenti koji su dati
+     */
+    private void handleExportMapCommand(Map<String, String> args) throws InterruptedException {
+        String filePath = args.getOrDefault("file", "log.csv");
+
+        File logFile = new File(filePath);
+
+        if (!logFile.exists()) {
+            try {
+                boolean created = logFile.createNewFile();
+                if (created) {
+                    System.out.println("Fajl " + filePath + " je kreiran.");
+                } else {
+                    System.out.println("Fajl " + filePath + " već postoji.");
+                }
+            } catch (IOException e) {
+                System.err.println("Greška prilikom kreiranja fajla: " + e.getMessage());
+                return;
+            }
+        }
+
+        memory.getJobQueue().put(new ExportMapJob("export-map-job", filePath));
     }
 
     /**

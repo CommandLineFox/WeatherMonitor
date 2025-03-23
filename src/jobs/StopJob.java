@@ -1,8 +1,6 @@
 package jobs;
 
-import memory.Memory;
 import types.Job;
-import types.JobStatus;
 import types.JobType;
 
 public class StopJob extends Job {

@@ -2,6 +2,7 @@ package threads;
 
 import jobs.*;
 import memory.Memory;
+import types.Job;
 
 import java.io.File;
 import java.io.IOException;
@@ -117,6 +118,11 @@ public class Cli implements Runnable {
      */
     private void handleStatusCommand(Map<String, String> args) {
         String jobName = parseStringArg(args, "job", "j");
+        for (Job job : memory.getJobQueue()) {
+            if (job.getName().equals(jobName)) {
+                System.out.println("Current status: " + job.getJobStatus());
+            }
+        }
     }
 
     /**

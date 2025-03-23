@@ -1,5 +1,6 @@
 package threads;
 
+import jobs.ReadFileJob;
 import types.Job;
 import types.JobStatus;
 import types.JobType;
@@ -31,7 +32,7 @@ public class JobDispatcher implements Runnable {
                 }
 
                 if (job.getType() == JobType.READ_FILE) {
-                    handleReadFileJob(job);
+                    handleReadFileJob((ReadFileJob) job);
                 } else {
                     handleGeneralJob(job);
                 }
@@ -46,8 +47,8 @@ public class JobDispatcher implements Runnable {
      *
      * @param job Job koji treba da se pokrene
      */
-    private void handleReadFileJob(Job job) {
-        String filePath = job.getName();
+    private void handleReadFileJob(ReadFileJob job) {
+        String filePath = job.getReadFile().getPath();
 
         try {
             Future<?> existingJob = activeFileJobs.get(filePath);

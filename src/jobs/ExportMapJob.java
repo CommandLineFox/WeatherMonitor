@@ -3,10 +3,12 @@ package jobs;
 import memory.Memory;
 import types.Job;
 import types.JobType;
+import types.ParsedData;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map;
 
 public class ExportMapJob extends Job {
     private final String filePath;
@@ -33,15 +35,26 @@ public class ExportMapJob extends Job {
                 }
             }
 
-            // Dodajemo podatke u fajl
             try (FileWriter writer = new FileWriter(logFile, true)) {
-                writer.write("Example Data\n");  // Primer podataka koji se eksportuju
+                writer.write("Letter,Station count,Sum\n");
+
+                for (Map.Entry<Character, ParsedData> entry : Memory.getInstance().getData().entrySet()) {
+                    char letter = entry.getKey();
+                    ParsedData data = entry.getValue();
+
+                    writer.write(letter + "," + data.getAppearanceCount() + "," + data.getValueSum() + "\n");
+                }
+
+                System.out.println("Podaci su uspešno eksportovani u fajl: " + filePath);
+
+            } catch (IOException e) {
+                System.err.println("Greška prilikom obrade fajla: " + e.getMessage());
             }
 
         } catch (IOException e) {
-            System.err.println("Greška prilikom obrade fajla: " + e.getMessage());
+            System.err.println("Greška prilikom rada sa fajlom: " + e.getMessage());
         } finally {
-            lock.unlock();  // Otključavanje nakon što se završi sa fajlom
+            Memory.getInstance().getLogFileLock().unlock();
         }
     }
 }

@@ -14,7 +14,7 @@ import java.util.concurrent.BlockingQueue;
 public class DirectoryMonitor implements Runnable {
     private final Path directory;
     private final BlockingQueue<Job> jobQueue;
-    private final Map<String, Long> lastModifiedMap; // Praćenje poslednje izmene fajlova
+    private final Map<String, Long> lastModifiedMap;
 
     public DirectoryMonitor(String dirPath, BlockingQueue<Job> jobQueue) {
         this.directory = Paths.get(dirPath);
@@ -30,7 +30,7 @@ public class DirectoryMonitor implements Runnable {
             while (!Thread.currentThread().isInterrupted()) {
                 WatchKey key;
                 try {
-                    key = watchService.take(); // Blokira dok ne dođe event
+                    key = watchService.take();
                 } catch (InterruptedException e) {
                     System.out.println("Watcher thread interrupted. Shutting down...");
                     Thread.currentThread().interrupt();
@@ -41,7 +41,6 @@ public class DirectoryMonitor implements Runnable {
                     Path filePath = directory.resolve((Path) event.context());
                     File file = filePath.toFile();
 
-                    // Ako fajl nije .txt ili .csv ili ne postoji, preskoči iteraciju
                     if (!(filePath.toString().endsWith(".txt") || filePath.toString().endsWith(".csv")) || !file.exists()) {
                         continue;
                     }

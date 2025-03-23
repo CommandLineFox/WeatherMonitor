@@ -1,6 +1,7 @@
 package memory;
 
 import lombok.Getter;
+import lombok.Setter;
 import types.Job;
 import types.ParsedData;
 
@@ -13,6 +14,15 @@ public class Memory {
     private static volatile Memory instance = null;
     private final BlockingQueue<Job> jobQueue;
     private final ConcurrentHashMap<Character, ParsedData> data = new ConcurrentHashMap<>();
+
+    @Setter
+    private Thread cliThread;
+    @Setter
+    private Thread logThread;
+    @Setter
+    private Thread jobDispatcherThread;
+    @Setter
+    private Thread directoryMonitorThread;
 
     private Memory() {
         jobQueue = new LinkedBlockingQueue<>();

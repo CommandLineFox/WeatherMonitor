@@ -6,7 +6,6 @@ public enum JobType {
     STATUS,
     MAP,
     EXPORT_MAP,
-    START,
     STOP,
     POISON_PILL
 }

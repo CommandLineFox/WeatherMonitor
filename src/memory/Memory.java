@@ -2,6 +2,10 @@ package memory;
 
 import lombok.Getter;
 import lombok.Setter;
+import threads.Cli;
+import threads.DirectoryMonitor;
+import threads.JobDispatcher;
+import threads.PeriodicReport;
 import types.Job;
 import types.ParsedData;
 
@@ -20,6 +24,9 @@ public class Memory {
     private final Lock logFileLock;
 
     @Setter
+    private String searchDirPath;
+
+    @Setter
     private Thread cliThread;
     @Setter
     private Thread logThread;
@@ -29,6 +36,14 @@ public class Memory {
     private Thread directoryMonitorThread;
     @Setter
     private Thread periodicMonitorThread;
+    @Setter
+    private Cli cli;
+    @Setter
+    private DirectoryMonitor directoryMonitor;
+    @Setter
+    private JobDispatcher jobDispatcher;
+    @Setter
+    private PeriodicReport periodicReport;
 
     private Memory() {
         jobQueue = new LinkedBlockingQueue<>();

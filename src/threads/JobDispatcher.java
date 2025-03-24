@@ -6,12 +6,14 @@ import types.JobStatus;
 import types.JobType;
 
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class JobDispatcher implements Runnable {
     private final BlockingQueue<Job> jobQueue;
     private final ExecutorService fileExecutor;
     private final ExecutorService generalExecutor;
     private final ConcurrentHashMap<String, Future<?>> activeFileJobs;
+    private final AtomicBoolean running = new AtomicBoolean(true);
 
     public JobDispatcher(int fileThreads, int generalThreads, BlockingQueue<Job> jobQueue) {
         this.jobQueue = jobQueue;
@@ -20,16 +22,16 @@ public class JobDispatcher implements Runnable {
         this.activeFileJobs = new ConcurrentHashMap<>();
     }
 
+    public void stop() {
+        shutdownExecutors();
+        running.set(false);
+    }
+
     @Override
     public void run() {
         try {
-            while (true) {
+            while (running.get()) {
                 Job job = jobQueue.take();
-
-                if (job.getType() == JobType.POISON_PILL) {
-                    shutdownExecutors();
-                    break;
-                }
 
                 if (job.getType() == JobType.READ_FILE) {
                     handleReadFileJob((ReadFileJob) job);

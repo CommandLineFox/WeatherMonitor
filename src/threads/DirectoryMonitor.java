@@ -10,16 +10,22 @@ import java.nio.file.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DirectoryMonitor implements Runnable {
     private final Path directory;
     private final BlockingQueue<Job> jobQueue;
     private final Map<String, Long> lastModifiedMap;
+    private final AtomicBoolean running = new AtomicBoolean(true);
 
     public DirectoryMonitor(String dirPath, BlockingQueue<Job> jobQueue) {
         this.directory = Paths.get(dirPath);
         this.jobQueue = jobQueue;
         this.lastModifiedMap = new HashMap<>();
+    }
+
+    public void stop() {
+        running.set(false);
     }
 
     @Override
@@ -29,7 +35,7 @@ public class DirectoryMonitor implements Runnable {
 
             processExistingFiles();
 
-            while (!Thread.currentThread().isInterrupted()) {
+            while (running.get()) {
                 WatchKey key;
                 try {
                     key = watchService.take();

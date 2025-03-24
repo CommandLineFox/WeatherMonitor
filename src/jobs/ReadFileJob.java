@@ -7,8 +7,8 @@ import types.*;
 import java.io.*;
 import java.util.concurrent.*;
 
-public class ReadFileJob extends Job {
-    @Getter
+@Getter
+public class ReadFileJob extends Job implements Serializable {
     private final ReadFile readFile;
 
     public ReadFileJob(String name, ReadFile readFile) {

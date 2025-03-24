@@ -3,8 +3,10 @@ package types;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
+
 @Getter
-public abstract class Job {
+public abstract class Job implements Serializable {
     private final JobType type;
     private final String name;
     @Setter

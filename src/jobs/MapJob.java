@@ -5,9 +5,10 @@ import types.Job;
 import types.JobType;
 import types.ParsedData;
 
+import java.io.Serializable;
 import java.util.Map;
 
-public class MapJob extends Job {
+public class MapJob extends Job implements Serializable {
     public MapJob(String name) {
         super(JobType.MAP, name);
     }

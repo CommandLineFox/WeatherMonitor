@@ -3,16 +3,23 @@ package threads;
 import jobs.*;
 import memory.Memory;
 import types.Job;
+import types.JobStatus;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Cli implements Runnable {
     private final Memory memory;
+    private AtomicBoolean running = new AtomicBoolean(true);
 
     public Cli() {
         this.memory = Memory.getInstance();
+    }
+
+    public void stop() {
+        running.set(false);
     }
 
     @Override
@@ -20,7 +27,7 @@ public class Cli implements Runnable {
         Scanner scanner = new Scanner(System.in);
         System.out.println("CLI pokrenut. Unesite komandu (start, stop, status, map, export_map):");
 
-        while (true) {
+        while (running.get()) {
             String input = scanner.nextLine().trim();
             if (input.isEmpty()) continue;
 
@@ -129,11 +136,52 @@ public class Cli implements Runnable {
      * Metod za gasenje programa
      *
      * @param args Argumenti koji su dati
-     * @throws InterruptedException Error koji moze da baci executor servis
      */
-    private void handleShutdownCommand(Map<String, String> args) throws InterruptedException {
+    private void handleShutdownCommand(Map<String, String> args) {
+        stop();
         boolean saveJobs = args.containsKey("save-jobs") || args.containsKey("s");
-        memory.getJobQueue().put(new StopJob("stop-job", saveJobs));
+
+        memory.getCli().stop();
+        memory.getDirectoryMonitor().stop();
+        memory.getJobDispatcher().stop();
+
+        if (saveJobs) {
+            System.out.println("Saving pending jobs...");
+
+            File saveConfigFile = new File("load_config");
+            try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(saveConfigFile))) {
+                for (Job job : memory.getJobQueue()) {
+                    if (job.getJobStatus() == JobStatus.PENDING) {
+                        out.writeObject(job);
+                    }
+                }
+                System.out.println("Pending jobs saved successfully.");
+            } catch (IOException e) {
+                System.out.println("Error saving jobs: " + e.getMessage());
+            }
+        }
+
+        joinThread(memory.getDirectoryMonitorThread());
+        joinThread(memory.getJobDispatcherThread());
+        joinThread(memory.getPeriodicMonitorThread());
+
+        System.out.println("Shutting down the program.");
+        System.exit(0);
+    }
+
+    /**
+     * Metod za pridruzivanje threadova
+     *
+     * @param thread Thread koji treba pridruziti trenutnom
+     */
+    private void joinThread(Thread thread) {
+        try {
+            if (thread != null && thread.isAlive()) {
+                thread.join();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**
@@ -149,14 +197,14 @@ public class Cli implements Runnable {
         System.out.print("Unesite putanju do direktorijuma: ");
         String dirPath = scanner.nextLine();
 
-        JobDispatcher jobDispatcher = new JobDispatcher(4, 4, memory.getJobQueue());
-        DirectoryMonitor directoryMonitor = new DirectoryMonitor(dirPath, memory.getJobQueue());
-        PeriodicReport periodicReport = new PeriodicReport("log.csv");
+        memory.setJobDispatcher(new JobDispatcher(4, 4, memory.getJobQueue()));
+        memory.setDirectoryMonitor(new DirectoryMonitor(dirPath, memory.getJobQueue()));
+        memory.setPeriodicReport(new PeriodicReport("log.csv"));
 
         Memory memory = Memory.getInstance();
-        memory.setJobDispatcherThread(new Thread(jobDispatcher));
-        memory.setDirectoryMonitorThread(new Thread(directoryMonitor));
-        memory.setPeriodicMonitorThread(new Thread(periodicReport));
+        memory.setJobDispatcherThread(new Thread(memory.getJobDispatcher()));
+        memory.setDirectoryMonitorThread(new Thread(memory.getDirectoryMonitor()));
+        memory.setPeriodicMonitorThread(new Thread(memory.getPeriodicReport()));
 
         memory.getJobDispatcherThread().start();
         System.out.println("Started job dispatcher");
@@ -166,7 +214,46 @@ public class Cli implements Runnable {
         System.out.println("Started periodic monitor on path: " + "log.csv");
 
         if (loadJobs) {
-            System.out.println("Have to load old jobs");
+            System.out.println("Loading saved jobs...");
+
+            File loadConfigFile = new File("load_config");
+            if (loadConfigFile.exists()) {
+                try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(loadConfigFile))) {
+                    CountDownLatch latch = new CountDownLatch(1);
+                    int jobCount = 0;
+
+                    while (true) {
+                        try {
+                            Job job = (Job) in.readObject();
+
+                            boolean added = memory.getJobQueue().offer(job);
+                            if (added) {
+                                System.out.println("Loaded job: " + job);
+                                jobCount++;
+                            } else {
+                                System.out.println("Failed to add job to the queue: " + job);
+                            }
+                        } catch (EOFException e) {
+                            break;
+                        } catch (ClassNotFoundException | IOException e) {
+                            System.out.println("Error loading jobs: " + e.getMessage());
+                            break;
+                        }
+                    }
+
+                    if (jobCount > 0) {
+                        latch = new CountDownLatch(jobCount);
+                        System.out.println("Waiting for all jobs to be loaded...");
+                    }
+
+                    latch.await();
+                    System.out.println("All jobs loaded, continuing execution.");
+                } catch (IOException e) {
+                    System.out.println("Error reading the load_config file: " + e.getMessage());
+                }
+            } else {
+                System.out.println("No load_config file found.");
+            }
         }
     }
 

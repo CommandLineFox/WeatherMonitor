@@ -32,5 +32,6 @@ bin/
 ### Mac OS ###
 .DS_Store
 
-### Custom folders
+### Custom folders and files
 testdata/
+*.csv

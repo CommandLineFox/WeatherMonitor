@@ -151,9 +151,7 @@ public class Cli implements Runnable {
             File saveConfigFile = new File("load_config");
             try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(saveConfigFile))) {
                 for (Job job : memory.getJobQueue()) {
-                    if (job.getJobStatus() == JobStatus.PENDING) {
-                        out.writeObject(job);
-                    }
+                    out.writeObject(job);
                 }
                 System.out.println("Pending jobs saved successfully.");
             } catch (IOException e) {

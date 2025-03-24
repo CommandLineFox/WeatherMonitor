@@ -35,3 +35,4 @@ bin/
 ### Custom folders and files
 testdata/
 *.csv
+load_config

@@ -75,7 +75,7 @@ public class ReadFileJob extends Job implements Serializable {
 
         char firstLetter = Character.toUpperCase(stationName.charAt(0));
 
-        synchronized (memory) {
+        synchronized (memory.getData()) {
             memory.getData().compute(firstLetter, (key, parsedData) -> {
                 if (parsedData == null) {
                     parsedData = new ParsedData(0, 0);

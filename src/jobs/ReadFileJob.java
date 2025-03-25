@@ -1,11 +1,10 @@
 package jobs;
 
 import lombok.Getter;
-import memory.Memory;
+import utility.Memory;
 import types.*;
 
 import java.io.*;
-import java.util.concurrent.*;
 
 @Getter
 public class ReadFileJob extends Job implements Serializable {
@@ -20,6 +19,7 @@ public class ReadFileJob extends Job implements Serializable {
     public void execute() {
         setJobStatus(JobStatus.RUNNING);
         Memory memory = Memory.getInstance();
+        memory.getJobHistory().put(this.getName(), this);
 
         File file = new File(readFile.getPath());
         if (!file.exists()) {
@@ -27,7 +27,7 @@ public class ReadFileJob extends Job implements Serializable {
             return;
         }
 
-        ExecutorService executor = Executors.newCachedThreadPool();
+        boolean success = true;
 
         try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             boolean skipHeader = file.getName().endsWith(".csv");
@@ -37,17 +37,21 @@ public class ReadFileJob extends Job implements Serializable {
 
             String line;
             while ((line = reader.readLine()) != null) {
-                final String currentLine = line;
+                if (!memory.getRunning().get()) {
+                    System.out.println("Shutting down ReadFileJob due to system shutdown.");
+                    success = false;
+                    break;
+                }
 
-                executor.submit(() -> {
-                    processLine(currentLine, memory);
-                });
+                processLine(line, memory);
             }
         } catch (IOException e) {
+            success = false;
             System.err.println("Error reading file: " + readFile.getPath());
-        } finally {
-            executor.shutdown();
-            setJobStatus(JobStatus.COMPLETED);
+        }
+
+        setJobStatus(JobStatus.COMPLETED);
+        if (success) {
             System.out.println("Finished processing file: " + readFile.getName());
         }
     }
@@ -59,8 +63,11 @@ public class ReadFileJob extends Job implements Serializable {
      * @param memory Memory instance
      */
     private void processLine(String line, Memory memory) {
-        String[] parts = line.split("[;,]");
+        if (!memory.getRunning().get()) {
+            return;
+        }
 
+        String[] parts = line.split("[;,]");
         if (parts.length < 2) {
             return;
         }
@@ -81,8 +88,8 @@ public class ReadFileJob extends Job implements Serializable {
                     parsedData = new ParsedData(0, 0);
                 }
 
-                parsedData.incrementStationCount();
-                parsedData.addTemperature(temperature);
+                parsedData.incrementAppearanceCount();
+                parsedData.addValue(temperature);
                 return parsedData;
             });
         }

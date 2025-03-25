@@ -1,4 +1,4 @@
-import memory.Memory;
+import utility.Memory;
 import threads.Cli;
 
 public class Main {

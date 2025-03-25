@@ -14,11 +14,11 @@ public class ParsedData {
         this.valueSum = valueSum;
     }
 
-    public void incrementStationCount() {
+    public void incrementAppearanceCount() {
         appearanceCount++;
     }
 
-    public void addTemperature(double temperature) {
+    public void addValue(double temperature) {
         valueSum += temperature;
     }
 }

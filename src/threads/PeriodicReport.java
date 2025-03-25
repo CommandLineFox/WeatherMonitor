@@ -1,30 +1,24 @@
 package threads;
 
-import memory.Memory;
+import utility.Memory;
 import types.ParsedData;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class PeriodicReport implements Runnable {
     private final String filePath;
-    private final AtomicBoolean running = new AtomicBoolean(true);
 
     public PeriodicReport(String filePath) {
         this.filePath = filePath;
-    }
-
-    public void stop() {
-        running.set(false);
     }
 
     @Override
     public void run() {
         Memory memory = Memory.getInstance();
 
-        while (running.get()) {
+        while (memory.getRunning().get()) {
             try {
                 Thread.sleep(60000);
 
@@ -38,13 +32,12 @@ public class PeriodicReport implements Runnable {
                     }
                     writer.write("\n");
                 } catch (IOException e) {
-                    System.err.println("Greška prilikom pisanja u fajl: " + e.getMessage());
+                    System.err.println("Error during writing into file: " + e.getMessage());
                 } finally {
                     memory.getLogFileLock().unlock();
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                System.err.println("PeriodicReport nit je prekinuta.");
                 break;
             }
         }

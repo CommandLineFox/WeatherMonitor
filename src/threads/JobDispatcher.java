@@ -1,19 +1,18 @@
 package threads;
 
 import jobs.ReadFileJob;
+import utility.Memory;
 import types.Job;
 import types.JobStatus;
 import types.JobType;
 
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class JobDispatcher implements Runnable {
     private final BlockingQueue<Job> jobQueue;
     private final ExecutorService fileExecutor;
     private final ExecutorService generalExecutor;
     private final ConcurrentHashMap<String, Future<?>> activeFileJobs;
-    private final AtomicBoolean running = new AtomicBoolean(true);
 
     public JobDispatcher(int fileThreads, int generalThreads, BlockingQueue<Job> jobQueue) {
         this.jobQueue = jobQueue;
@@ -22,22 +21,22 @@ public class JobDispatcher implements Runnable {
         this.activeFileJobs = new ConcurrentHashMap<>();
     }
 
-    public void stop() {
-        shutdownExecutors();
-        running.set(false);
-    }
-
     @Override
     public void run() {
+        Memory memory = Memory.getInstance();
         try {
-            while (running.get()) {
+            while (memory.getRunning().get()) {
                 Job job = jobQueue.take();
+                memory.getJobHistory().put(job.getName(), job);
 
                 if (job.getType() == JobType.READ_FILE) {
                     handleReadFileJob((ReadFileJob) job);
                 } else {
                     handleGeneralJob(job);
                 }
+            }
+            if (!memory.getRunning().get()) {
+                shutdownExecutors();
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -64,6 +63,7 @@ public class JobDispatcher implements Runnable {
                     job.execute();
                 } finally {
                     job.setJobStatus(JobStatus.COMPLETED);
+                    Memory.getInstance().getJobHistory().put(job.getName(), job);
                     activeFileJobs.remove(filePath);
                 }
             });
@@ -85,6 +85,7 @@ public class JobDispatcher implements Runnable {
                 job.execute();
             } finally {
                 job.setJobStatus(JobStatus.COMPLETED);
+                Memory.getInstance().getJobHistory().put(job.getName(), job);
             }
         });
     }

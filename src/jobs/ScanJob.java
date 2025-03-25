@@ -1,15 +1,13 @@
 package jobs;
 
-import memory.Memory;
+import types.JobStatus;
+import utility.Memory;
 import types.Job;
 import types.JobType;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.Serializable;
+import java.io.*;
 import java.nio.file.*;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.*;
 import java.util.stream.Stream;
 
@@ -29,17 +27,37 @@ public class ScanJob extends Job implements Serializable {
 
     @Override
     public void execute() {
+        setJobStatus(JobStatus.RUNNING);
+        Memory memory = Memory.getInstance();
+        memory.getJobHistory().put(this.getName(), this);
+
+        if (!memory.getRunning().get()) {
+            return;
+        }
+
         ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 
-        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputFileName));
-             Stream<Path> stream = Files.list(Paths.get(Memory.getInstance().getSearchDirPath()))) {
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputFileName))) {
+            List<Path> files;
+            try (Stream<Path> stream = Files.list(Paths.get(memory.getSearchDirPath()))) {
+                files = stream.filter(Files::isRegularFile).toList();
+            } catch (IOException e) {
+                System.err.println("Error listing files: " + e.getMessage());
+                return;
+            }
 
-            List<Path> files = stream.filter(Files::isRegularFile).toList();
             CountDownLatch latch = new CountDownLatch(files.size());
 
             for (Path file : files) {
+                if (!memory.getRunning().get()) {
+                    System.out.println("Scan job aborted before processing files.");
+                    break;
+                }
+
                 executor.submit(() -> {
-                    processFile(file, writer);
+                    if (memory.getRunning().get()) {
+                        processFile(file, writer);
+                    }
                     latch.countDown();
                 });
             }
@@ -55,20 +73,48 @@ public class ScanJob extends Job implements Serializable {
         System.out.println("Scan job completed: " + outputFileName);
     }
 
+    /**
+     * Metod za procesiranje fajla
+     *
+     * @param file   Fajl koji treba procesovati
+     * @param writer Writer za pisanje
+     */
     private void processFile(Path file, BufferedWriter writer) {
-        try (Stream<String> lines = Files.lines(file)) {
-            boolean skipHeader = file.toString().endsWith(".csv");
+        Memory memory = Memory.getInstance();
 
-            lines.skip(skipHeader ? 1 : 0)
-                    .map(this::parseLine)
-                    .filter(Objects::nonNull)
-                    .forEach(station -> writeResult(writer, station));
+        try (BufferedReader reader = Files.newBufferedReader(file)) {
+            boolean skipHeader = file.toString().endsWith(".csv");
+            if (skipHeader) reader.readLine(); // Skip CSV header
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (!memory.getRunning().get()) {
+                    System.out.println("Scan job interrupted while processing " + file.getFileName());
+                    break;
+                }
+
+                Station station = parseLine(line);
+                if (station != null) {
+                    writeResult(writer, station);
+                }
+            }
         } catch (IOException e) {
             System.err.println("Error reading file: " + file.getFileName());
         }
     }
 
+    /**
+     * Metod za parsiranje pojedinacne linije
+     *
+     * @param line Linija koja se parsira
+     * @return Podaci za upisivanje
+     */
     private Station parseLine(String line) {
+        Memory memory = Memory.getInstance();
+        if (!memory.getRunning().get()) {
+            return null;
+        }
+
         String[] parts = line.split("[;,]");
         if (parts.length < 2) return null;
 
@@ -84,12 +130,20 @@ public class ScanJob extends Job implements Serializable {
         }
     }
 
-    private synchronized void writeResult(BufferedWriter writer, Station station) {
-        try {
-            writer.write(station.name() + ";" + station.temperature());
-            writer.newLine();
-        } catch (IOException e) {
-            System.err.println("Error writing to output file: " + outputFileName);
+    /**
+     * Metod za pisanje u fajl
+     *
+     * @param writer  Writer kojim se pise
+     * @param station Podaci koji se upisuju
+     */
+    private void writeResult(BufferedWriter writer, Station station) {
+        synchronized (writer) {
+            try {
+                writer.write(station.name() + ";" + station.temperature());
+                writer.newLine();
+            } catch (IOException e) {
+                System.err.println("Error writing to output file: " + outputFileName);
+            }
         }
     }
 

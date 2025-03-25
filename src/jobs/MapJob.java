@@ -1,6 +1,7 @@
 package jobs;
 
-import memory.Memory;
+import types.JobStatus;
+import utility.Memory;
 import types.Job;
 import types.JobType;
 import types.ParsedData;
@@ -15,11 +16,13 @@ public class MapJob extends Job implements Serializable {
 
     @Override
     public void execute() {
+        setJobStatus(JobStatus.RUNNING);
         Memory memory = Memory.getInstance();
+        memory.getJobHistory().put(this.getName(), this);
 
         synchronized (memory.getData()) {
             if (memory.getData().isEmpty()) {
-                System.out.println("Mapa još uvek nije dostupna.");
+                System.out.println("Map doesn't exist yet.");
                 return;
             }
         }

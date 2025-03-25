@@ -1,4 +1,4 @@
-package memory;
+package utility;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -12,6 +12,7 @@ import types.ParsedData;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -19,9 +20,12 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Memory {
     private static volatile Memory instance = null;
 
+    private final ConcurrentHashMap<String, Job> jobHistory;
     private final BlockingQueue<Job> jobQueue;
     private final ConcurrentHashMap<Character, ParsedData> data;
     private final Lock logFileLock;
+
+    private final AtomicBoolean running;
 
     @Setter
     private String searchDirPath;
@@ -46,10 +50,12 @@ public class Memory {
     private PeriodicReport periodicReport;
 
     private Memory() {
+        jobHistory = new ConcurrentHashMap<>();
         jobQueue = new LinkedBlockingQueue<>();
         data = new ConcurrentHashMap<>();
 
         logFileLock = new ReentrantLock();
+        running = new AtomicBoolean(true);
     }
 
     public static Memory getInstance() {

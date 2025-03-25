@@ -1,6 +1,7 @@
 package jobs;
 
-import memory.Memory;
+import types.JobStatus;
+import utility.Memory;
 import types.Job;
 import types.JobType;
 import types.ParsedData;
@@ -20,7 +21,9 @@ public class ExportMapJob extends Job implements Serializable {
 
     @Override
     public void execute() {
+        setJobStatus(JobStatus.RUNNING);
         Memory memory = Memory.getInstance();
+        memory.getJobHistory().put(this.getName(), this);
 
         memory.getLogFileLock().lock();
         try (FileWriter writer = new FileWriter(filePath, false)) {
@@ -32,9 +35,9 @@ public class ExportMapJob extends Job implements Serializable {
                 writer.write(letter + "," + data.getAppearanceCount() + "," + String.format("%.2f", data.getValueSum()) + "\n");
             }
 
-            System.out.println("Podaci su uspešno eksportovani u fajl: " + filePath);
+            System.out.println("Data written into file: " + filePath);
         } catch (IOException e) {
-            System.err.println("Greška prilikom pisanja u fajl: " + e.getMessage());
+            System.err.println("Error during writing into file: " + e.getMessage());
         } finally {
             memory.getLogFileLock().unlock();
         }

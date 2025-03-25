@@ -13,7 +13,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Getter
@@ -23,7 +22,7 @@ public class Memory {
     private final ConcurrentHashMap<String, Job> jobHistory;
     private final BlockingQueue<Job> jobQueue;
     private final ConcurrentHashMap<Character, ParsedData> data;
-    private final Lock logFileLock;
+    private final ReentrantLock logFileLock;
 
     private final AtomicBoolean running;
 

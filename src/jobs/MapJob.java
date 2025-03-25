@@ -25,20 +25,17 @@ public class MapJob extends Job implements Serializable {
                 System.out.println("Map doesn't exist yet.");
                 return;
             }
-        }
 
-        StringBuilder output = new StringBuilder();
-        int count = 0;
+            StringBuilder output = new StringBuilder();
+            int count = 0;
 
-        synchronized (memory.getData()) {
             for (Map.Entry<Character, ParsedData> entry : memory.getData().entrySet()) {
                 char letter = entry.getKey();
                 ParsedData parsedData = entry.getValue();
+
                 output.append(letter).append(": ").append(parsedData.getAppearanceCount()).append(" - ").append(parsedData.getValueSum()).append(" | ");
 
-                count++;
-
-                if (count % 2 == 0) {
+                if (++count % 2 == 0) {
                     output.append("\n");
                 }
             }
@@ -46,8 +43,8 @@ public class MapJob extends Job implements Serializable {
             if (count % 2 != 0) {
                 output.append("\n");
             }
-        }
 
-        System.out.println(output);
+            System.out.println(output);
+        }
     }
 }
